@@ -1,20 +1,22 @@
-FROM python:3.10 AS builder
+FROM ghcr.io/linuxserver/baseimage-alpine:edge AS builder
 WORKDIR /app
 COPY requirements.txt .
-RUN python3 -m venv .venv && .venv/bin/pip install --no-cache-dir -r requirements.txt
 COPY install_dependencies.sh .
-RUN bash install_dependencies.sh
+RUN apk add --update --no-cache py3-pip py3-setuptools python3 python3-dev py3-virtualenv \
+    && python3 -m venv .venv \
+    && .venv/bin/pip install --no-cache-dir -r requirements.txt \
+    && bash install_dependencies.sh
 
-FROM python:3.10-slim
+FROM ghcr.io/linuxserver/baseimage-alpine:edge
 
 WORKDIR /app
+
+RUN apk add --update --no-cache python3
+
 COPY --from=builder /app/.venv /app/.venv
 COPY --from=builder /app/ffmpeg /app/ffmpeg
 COPY xiaomusic/ ./xiaomusic/
 COPY xiaomusic.py .
-ENV XDG_CONFIG_HOME=/config
-ENV XIAOMUSIC_HOSTNAME=192.168.2.5
-ENV XIAOMUSIC_PORT=8090
 VOLUME /config
 EXPOSE 8090
 ENV PATH=/app/.venv/bin:$PATH
