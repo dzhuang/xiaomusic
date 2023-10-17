@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  xiaomusic:
+    image: dzhuang/xiaomusic
+    container_name: xiaomusic
+    ports:
+      - 8090:8090
+    volumes:
+      - .music:/app/music
+    environment:
+      - MI_USER=<int/user/id>
+      - MI_PASS=<str/passwd>
+      - MI_DID=<int/device/id>
+      - MI_HARDWARE=<lx01>
+      - XIAOMUSIC_HOSTNAME=<192.168.2.1>
+      - TZ=Asia/Hong_Kong
+      - PUID=<user id>
+      - PGID=<user group id>
+    restart: unless-stopped
+
+#  watchtower:
+#    image: containrrr/watchtower
+#    container_name: watchtower
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+#    environment:
+#      TZ: Asia/Hong_Kong
+#    command: --interval 3600 xiaomusic --cleanup
+#    restart: unless-stopped
