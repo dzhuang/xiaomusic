@@ -61,6 +61,38 @@ class HTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
             # ignore this or TODO find out why the error later
             pass
 
+
+class TooManyTriesException(Exception):
+    pass
+
+
+def retry_for_known_error(times):
+    # https://gist.github.com/alairock/a0235eae85c62f0f0f7b81bec8aa378a
+    def func_wrapper(f):
+        logger = logging.getLogger("xiaomusic")
+        logger.setLevel(logging.INFO)
+        logger.addHandler(RichHandler())
+
+        async def wrapper(*args, **kwargs):
+            exc = None
+            for _time in range(times):
+                # noinspection PyBroadException
+                try:
+                    if _time > 1:
+                        logger.info(f"Try for {_time + 1} out of {times} times")
+                    return await f(*args, **kwargs)
+                except Exception as exc:
+                    if "ROM端未响应" in str(exc):
+                        logger.warning(f"{type(exc).__name__}: {str(exc)}")
+                    else:
+                        raise exc
+
+            assert exc is not None
+            raise TooManyTriesException() from exc
+        return wrapper
+    return func_wrapper
+
+
 class XiaoMusic:
     def __init__(self, config: Config):
         self.config = config
@@ -406,6 +438,7 @@ class XiaoMusic:
                     self.log.warning(f"执行出错 {str(e)}\n{traceback.format_exc()}")
 
     # 播放歌曲
+    @retry_for_known_error(times=3)
     async def play(self, **kwargs):
         name = kwargs["name"]
         if name == "":
